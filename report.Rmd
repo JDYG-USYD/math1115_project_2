@@ -1,0 +1,115 @@
+---
+title: "Flights through the ependamic"
+author: "Jelly Dongyi Guo - 470033070"
+subtitle: "With Qantas Airways"
+date: "University of Sydney | MATH1115 | `r format(Sys.time(), '%B %Y')`"
+output: 
+  html_document:
+    code_folding: hide  # don't change this
+    code_download: true # embed .Rmd file
+    toc: true  # table of contents
+    toc_depth: 3
+    toc_float: true # toc is always visible when scrolled
+    number_section: true # add section numbers to headings
+    theme:
+      bootswatch: "simplex" # check https://bootswatch.com/ 
+      base_font:
+        google: Prompt # select any Google Font
+      heading_font:
+        google: Proza Libre # select any Google Font
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+if (requireNamespace("thematic")) 
+  thematic::thematic_rmd(font = "auto")
+```
+
+# Introduction
+
+## Background
+
+There is definitely a huge impact on global airline industry because of the COVID-19 pandemic, especially for those who carries lots of international airlines: simply because of COVID-19, there were 75% of the domestic flight trips and 93% of the international ones canceled or suspended(OliverWyman, 2021). For United States, the capacity of available seat miles decreased even more rapid than 9/11 terror attacks and Global Economic Crisis, plus the H1N1 pandemic, which for those events the capacity stayed over 80% but below 40% for COVID-19 during at least 9 months after events broke out(OliverWyman, 2021). The International Air Transport Association even made the prediction that there would be no cash-positive for the whole aviation industry in globe, where the expected losses to November is US\$38.7 billion in 2021, after losing US\$118.5 billion in 2020 (OliverWyman, 2021).
+
+Unfortunately, Australia is not escaped. In the sole year of 2020, the whole Oceania lost 65.6% of available seat miles capacity of all flight services and 56.8% on domestic lines compared to 2019, which is the most decreased capacity in available seat miles among all regions(OliverWyman, 2021).
+
+## Stakeholder
+
+My stakeholder, Qantas Airways, founded in 1920, nicknamed "The Flying Kangaroo", is the biggest airline company in Southern Hemisphere and 3rd most historic airline company around the world. It has also been often nominated as the safest airline company as it is recorded having no fatal accidents since 1951.
+
+However, COVID-19 does not take a break of damaging for anyone, Qantas has predicted that the pandemic would likely to cause a AU$20 billion loss on revenue at the end of 2021(BBC, 2021), pushing it to plan axing around 6000 jobs, after putting two thirds of the employees on leave on March 2020.
+
+Though the speedy vaccination rolling out quickly, steps become further to get on the track before the breakout, the airline companies are still predicted to compete with each other in such limited and narrow situations for a while as the border is still closed for foreigners and there is still continuous effort on combating with the COVID-19(OliverWyman, 2021).
+
+# Executive Summary
+
+The report aims to study on past flight data and identify possible relationships between categories or trends which could hint my stakeholder to narrow down financial losses by any possible means.
+
+Our recommendations are ...
+
+# Initial Data Analysis (IDA)
+
+This data was collected by the Bureau of Infrastructure and Transport Research Economics from third parties, although the accuracy, reliability and fitness for any purpose of this dataset are promised, as one of the Commonwealths, the credibility of this gathered data is still up high especially there is no harm for any party involved to submit the data excepted accidentally breaking some entries.
+
+```{r}
+# Required Packages
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(knitr)
+library(plyr)
+
+# Prepare Data
+read_csv("data/data.csv", name_repair = janitor::make_clean_names) %>% 
+  filter(airline == "Qantas Airways") %>%
+  select(-month, -australian_city, -international_city, -airline, -route, -stops, -all_flights) -> data
+```
+
+The original data aims to collect all the information of international airlines of Australia from September, 2003 to June, 2021. The cleaned data drops all the entries which is not relevant to my stakeholder and drop several categories, like airline's date, port country or service country, routes and city stops.
+
+# Data analysis and recommendations
+
+
+
+```{r}
+data %>% 
+  select(year) %>% 
+  table() %>% 
+  as.tibble() %>%
+  mutate( 
+   n = case_when(
+      . == 2003 ~ n*4,
+      . == 2021 ~ n*2,
+      TRUE ~ as.numeric(n)
+    )
+  ) %>% 
+  kable(align = "cc", col.names = c("Year", "Appearances"))
+```
+
+
+
+```{r}
+data %>% 
+  select(year, max_seats) %>% 
+  plyr::ddply("year", plyr::numcolwise(sum)) %>% 
+  mutate( 
+   max_seats = case_when(
+      year == 2003 ~ max_seats*4,
+      year == 2021 ~ max_seats*2,
+      TRUE ~ as.numeric(max_seats)
+    )
+  ) %>% 
+  kable(align = "cc", col.names = c("Year", "Yearly Max Seats"))
+```
+
+> Question about most seats sold/seated during year, trend from 03 to 21
+
+> Question about ported region
+
+> 
+
+# References
+
+* BBC, August 26, 2021, Covid: Qantas says pandemic to cost billions in lost revenue, Retrieved from: https://www.bbc.com/news/business-58338262[Access Date: 17/10/2021]
+
+* OliverWyman, 2021, Airline Economic Analysis 2020-2021, Retrieved from: https://www.oliverwyman.com/our-expertise/insights/2021/mar/airline-economic-analysis-2020-2021.html[Access Date: 17/10/2021]
