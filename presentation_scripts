@@ -1,0 +1,10 @@
+Hello, this is Jelly and my stakeholder is Qantas Airways.
+
+So in this project, we investigated on a dataset that records the past international flight arrangements in Australia from 2003 to 2021, this report aims to help my stakeholder by wrapping up this data to identify some possible relationships between categories or some facts that could hint my stakeholder to narrow down financial losses in some ways during the huge impact of COVID-19 pandemic and a perspective to recover soon as long as the breakout sorta ends. The pandemic literally tramatises the airline industry, especially for those who carries a lot of international airlines like my stakeholder does.
+
+I will jump into the conclusion first since the recommendation we got from this report is quite subtle: which is to stay tight with those frequent flyers and regions - in this case New Zealand - since the more customers we get, the more revenue there will be based on the fact our study indicates the future is not that predictable with what we have here.
+
+There are 2 main anlysise   performed here: the first is we tried to find a linear model between the flight services appearances, or the maximum provided seats - so the capacity, and the year.
+so we can tell is the airline market raising up before, is there any inertias. But sadly enough there is none and seems like for each year the airline market was always heavily influenced by the event happened on that year, like Olympics or Financial Crisis.
+
+The second thing is we tried to find is the most frequently traveled region - which is New Zealand - shares a distribution of monthly flights than the others, it is a chi-squared test and it is also a NO, so since there is no overall peak of traveling globally for my stakeholder's airline, we mind just stick to the most frequent one.
