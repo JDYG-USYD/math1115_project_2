@@ -12,17 +12,28 @@ output:
     toc_float: true # toc is always visible when scrolled
     number_section: true # add section numbers to headings
     theme:
-      bootswatch: "simplex" # check https://bootswatch.com/ 
-      base_font:
-        google: Prompt # select any Google Font
-      heading_font:
-        google: Proza Libre # select any Google Font
+      bootswatch: "simplex" # check https://bootswatch.com/
+    base_font:
+      google: Prompt # select any Google Font
+    heading_font:
+      google: Proza Libre # select any Google Font
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-if (requireNamespace("thematic")) 
+# Required Packages
+library(tidyverse)
+library(base64)
+
+if (requireNamespace("thematic"))
   thematic::thematic_rmd(font = "auto")
+
+knitr::opts_chunk$set(echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE)
+knitr::opts_current$set(fig.showtext = TRUE)
+
+suppressWarnings
+suppressMessages
+options(error = expression(NULL))
+options(scipen = 100)
 ```
 
 # Introduction
@@ -43,73 +54,288 @@ Though the speedy vaccination rolling out quickly, steps become further to get o
 
 # Executive Summary
 
-The report aims to study on past flight data and identify possible relationships between categories or trends which could hint my stakeholder to narrow down financial losses by any possible means.
-
-Our recommendations are ...
+The report aims to study on past flight data and identify possible relationships between categories or some facts which could hint my stakeholder to narrow down financial losses in some ways. Our recommendations in the end are bit subtle: it is quite important to stay with our frequent flyers, especially for those who came from our most frequently flying region - New Zealand instead of trying to break through from other perspectives due to the fact that in this report's study the future is not that predictable and those who brings lots of flying opportunities - which brings customers and revenues - are not sharing much common spots than the others.
 
 # Initial Data Analysis (IDA)
 
 This data was collected by the Bureau of Infrastructure and Transport Research Economics from third parties, although the accuracy, reliability and fitness for any purpose of this dataset are promised, as one of the Commonwealths, the credibility of this gathered data is still up high especially there is no harm for any party involved to submit the data excepted accidentally breaking some entries.
 
 ```{r}
-# Required Packages
-library(readr)
-library(ggplot2)
-library(tidyverse)
-library(knitr)
-library(plyr)
-
 # Prepare Data
 read_csv("data/data.csv", name_repair = janitor::make_clean_names) %>% 
   filter(airline == "Qantas Airways") %>%
-  select(-month, -australian_city, -international_city, -airline, -route, -stops, -all_flights) -> data
+  select(-month, -in_out, -australian_city, -international_city, -port_country, -service_country, -service_region, -airline, -route, -stops) -> data
 ```
 
-The original data aims to collect all the information of international airlines of Australia from September, 2003 to June, 2021. The cleaned data drops all the entries which is not relevant to my stakeholder and drop several categories, like airline's date, port country or service country, routes and city stops.
+The original data aims to collect all the information of international airlines of Australia from September, 2003 to June, 2021. The cleaned data drops all the entries which is not relevant to my stakeholder and drop several categories, like airline's date, whether the flight was porting in or out Australia, port country or service country/region, routes and city stops. This leads to the remaining attributes as below:
 
-# Data analysis and recommendations
+- `in_out`: I = Inbound (Inbound to Australia/Australian international airport) and O = Outbound (Outbound from Australia/Australian international airport)
 
+- `port_country`: The country where uplift or discharge port is, which is also where the first stop beside the Australian ones.
 
+- `port_region`: The region where uplift or discharge port is, which is also where the first stop beside the Australian ones.
 
-```{r}
+- `service_country`: The country where same flight number services commence or cease.
+
+- `service_region`: The region where same flight number services commence or cease.
+
+- `max_seats`
+
+- `year`: year in format YYYY
+
+- `month_num`: month in format M
+
+# Data Analysis and Recommendations
+
+During such a tough period of time, the most obvious way of preserving from losses and still competing in the flight business game is to spend the cents on the key services that are highly demanded, especially those who potentially can gain the fastest financial recovery.
+
+```{r echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE}
 data %>% 
-  select(year) %>% 
-  table() %>% 
-  as.tibble() %>%
-  mutate( 
-   n = case_when(
-      . == 2003 ~ n*4,
-      . == 2021 ~ n*2,
-      TRUE ~ as.numeric(n)
+  select(year, all_flights,max_seats) %>% 
+  plyr::ddply("year", plyr::numcolwise(sum)) %>% 
+  mutate(
+   all_flights = case_when(
+      year == 2003 ~ all_flights*4,
+      year == 2021 ~ all_flights*2,
+      TRUE ~ as.numeric(all_flights)
     )
   ) %>% 
-  kable(align = "cc", col.names = c("Year", "Appearances"))
-```
-
-
-
-```{r}
-data %>% 
-  select(year, max_seats) %>% 
-  plyr::ddply("year", plyr::numcolwise(sum)) %>% 
   mutate( 
    max_seats = case_when(
       year == 2003 ~ max_seats*4,
       year == 2021 ~ max_seats*2,
       TRUE ~ as.numeric(max_seats)
     )
-  ) %>% 
-  kable(align = "cc", col.names = c("Year", "Yearly Max Seats"))
+  ) -> table_of_years
+
+mean_flights <- trunc(mean(table_of_years$all_flights), digits = 0)
+mean_max_seats <- trunc(mean(table_of_years$max_seats), digits = 0)
+
+table_of_years %>% 
+  filter(year == 2020) %>% 
+  select(all_flights) -> flights_2020
+table_of_years %>% 
+  filter(year == 2021) %>% 
+  select(all_flights) -> flights_2021
+table_of_years %>% 
+  filter(year == 2020) %>% 
+  select(max_seats) -> max_seats_2020
+table_of_years %>% 
+  filter(year == 2021)%>% 
+  select(max_seats)  -> max_seats_2021
+
+table_of_years %>% 
+  ggplot(aes(x = year, y = all_flights)) +
+  geom_bar(stat = "identity") + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Number of Flights by Year") +
+  xlab("Year") +
+  ylab("Flights") +
+  theme_bw() + 
+  geom_blank()
+             
+table_of_years %>% 
+  ggplot(aes(year, max_seats)) +
+  geom_bar(stat = "identity") + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Max Provided Seats by Year") +
+  xlab("Year") +
+  ylab("Max Seats") +
+  theme_bw() + 
+  geom_blank()
 ```
 
-> Question about most seats sold/seated during year, trend from 03 to 21
+It is quite significant the impact of COVID-19 hit hard on possible journey during its period of time. In 2020, there were only `r table_of_years %>% filter(year == 2020) %>% select(all_flights)` Qantas Airways flights made a trip with total `r table_of_years %>% filter(year == 2020) %>% select(max_seats)` seats, and things get worse in 2021, only `r table_of_years %>% filter(year == 2021) %>% select(all_flights)` flights took part with `r table_of_years %>% filter(year == 2021) %>% select(max_seats)` capacity of seats, where from 2003 to 2021, averagely there are `r mean_flights` flights per year with `r mean_max_seats` seats capacity.
 
-> Question about ported region
+A temporary heads-down is not worrying, but a long-term trend is. Is the appearances of each provided services and seats capacities falling down before the pandemic or it was actually rising up but just got pinned down by COVID-19? Or equally saying:
 
-> 
+## Linear Model
+
+> **Is there a linear model between the flight services appearances and the year before 2020 COVID-19 breakout? How about the capacity of seats and the year?**
+
+```{r echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE}
+data %>% 
+  filter(year < 2020) %>% 
+  ggplot(aes(year, all_flights)) +
+  geom_point() +
+  geom_smooth(aes(colour = "Linear Model"), method = "lm", fill = "blue", alpha = .05) +
+  geom_smooth(aes(colour = "LOESS"), fill = "pink", alpha = .05) +
+  scale_colour_manual(name = "", values = c("blue", "pink")) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("Flight Services Appearances by Year") +
+  xlab("Year") +
+  ylab("Flights") + 
+  geom_blank() -> plot_flights
+
+data %>% 
+  filter(year < 2020) %>% 
+  ggplot(aes(year, max_seats)) +
+  geom_point() +
+  geom_smooth(aes(colour = "Linear Model"), method = "lm", fill = "blue", alpha = 1) +
+  geom_smooth(aes(colour = "LOESS"), fill = "pink", alpha = 1) +
+  scale_colour_manual(name = "", values = c("blue", "pink")) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("Max Seats Capacities by Year") +
+  xlab("Year") +
+  ylab("Max Seats") + 
+  geom_blank() -> plot_seats
+
+fit_flights <- lm(all_flights ~ year, data = data %>% filter(year < 2020))
+fit_seats <- lm(max_seats ~ year, data = data %>% filter(year < 2020))
+fit_flights_poly <- lm(all_flights ~ poly(year,2), data = data)
+fit_seats_ploy <- lm(max_seats ~ poly(year,2), data = data)
+```
+
+In order to find the linear model, scatter plots can be helpful:
+
+```{r echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE}
+plot_flights
+plot_seats
+```
+
+Although the linear model and the LOESS are really close to each other because of the massiveness of data on the plot, it is quite unlikely that linear model is the case here since LOESS fluctuates around the linear model line multiple times. However, to confirm on this, there are further investigation:
+
+```{r echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE}
+par(mfrow = c(1,2))
+plot(fit_flights, which = 2:3)
+plot(fit_seats, which = 2:3)
+```
+
+From the plots, it is confirmed that the the data does not meet both the equal variances (Normal Q-Q plot is super off shape) and the normality assumption (Super curved in Scale-Location).
+
+```{r}
+summary(fit_flights)
+summary(fit_seats)
+```
+
+The theory is also confirmed by doing the linear model summary where R-squared value is insufficient (while R-squared values are all around 0.055 with P-values extremely close to 0), this is not changing even a polynomial fitting is applied (as code chunk below, R-squared values goes around 0.04 and literally 0 P-values), which leads to the conclusion that there is no linear model between how many services or capacities of seats and the year.
+
+```{r}
+summary(fit_flights_poly)
+summary(fit_seats_ploy)
+```
+
+## Chi-square Test (Goodness of Fit)
+
+> **What is the month which is most traveled in? What is the most frequently traveled region? Is the "intense" of the months from the most frequently traveled region really differing from the others?**
+
+Firstly, we locate the month and the continent, for this time, since the data from 2003 and 2021 is not a whole-year record, they will be excepted in this investigation:
+
+```{r}
+data %>% 
+  filter(year != 2021) %>% 
+  filter(year != 2003) %>% 
+  select(month_num, all_flights,max_seats) %>% 
+  plyr::ddply("month_num", plyr::numcolwise(sum)) -> table_of_months
+
+table_of_months %>% 
+  ggplot(aes(x = month_num, y = all_flights)) +
+  geom_bar(stat = "identity") + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Number of Flights per months") +
+  xlab("Month") +
+  ylab("Flights") +
+  theme_bw() + 
+  geom_blank()
+             
+table_of_months %>% 
+  ggplot(aes(x = month_num, y = max_seats)) +
+  geom_bar(stat = "identity") + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Max Provided Seats per months") +
+  xlab("Month") +
+  ylab("Max Seats") +
+  theme_bw() + 
+  geom_blank()
+```
+
+For the month it is quite obvious that March and December are more outstanding than others, but March wins slightly based on the comparing below:
+
+```{r}
+table_of_months %>% filter(month_num == 3) %>% select(all_flights) > table_of_months %>% filter(month_num == 12) %>% select(all_flights)
+
+table_of_months %>% filter(month_num == 3) %>% select(max_seats) > table_of_months %>% filter(month_num == 12) %>% select(max_seats)
+```
+
+Looking into the most frequently traveled region:
+
+```{r}
+data %>% 
+  filter(year != 2021) %>% 
+  filter(year != 2003) %>% 
+  select(port_region, all_flights,max_seats) %>%
+  plyr::ddply("port_region", plyr::numcolwise(sum)) -> table_of_region
+
+table_of_region %>% 
+  ggplot(aes(x = port_region, y = all_flights)) +
+  geom_bar(stat = "identity") + 
+  xlab("Port Region") +
+  ylab("Flights") +
+  theme_bw() + 
+  geom_blank()
+             
+table_of_region %>%  
+  ggplot(aes(x = port_region, y = max_seats)) +
+  geom_bar(stat = "identity") + 
+  xlab("Port Region") +
+  ylab("Max Seats") +
+  theme_bw() + 
+  geom_blank()
+```
+
+From the plot we can see although SE Asia tends to be provided with slightly more seat capacities among trips from or to Australia, the New Zealand is definitely still the most frequent travel departure or destination that Australia is having with much more flights communicating between Australia and New Zealand.
+
+Now the question becomes: 
+
+> **Is there a region disparity in the proportion of most frequently traveled months?**
+
+And in order to solve this, a chi-square test can be super helpful. Firstly, hypothesizes are pulled up:
+
+- $H_0$ (Null Hypothesis): The flights per month are distributed in the same ratio as the general flight's monthly distribution.
+
+- $H_1$ (Alternative Hypothesis): The flights per month are **NOT** distributed in the same ratio as the general flight's monthly distribution.
+
+```{r}
+# Total flights
+flight_sum <- sum(table_of_months$all_flights)
+
+# Get EV
+table_of_months %>% 
+  select(all_flights) %>% 
+  mutate(all_flights = all_flights / flight_sum) %>% 
+  pull(all_flights) -> expected
+  
+# Get New Zealand's all flights by months
+data %>% 
+  filter(port_region == "New Zealand") %>% 
+  select(month_num, all_flights) %>% 
+  plyr::ddply("month_num", plyr::numcolwise(sum)) %>% 
+  as.tibble() -> flights_by_months_nz
+
+observed <- flights_by_months_nz$all_flights
+```
+
+Assumptions are checked below based on the observed and expected possibility calculated above since the data are quite independently collected (third-parties):
+
+```{r}
+sum(observed) * expected
+```
+
+```{r}
+chi_test <- chisq.test(observed, p = expected)
+chi_test
+```
+
+Here the test statistics are revealed here as `r chi_test$statistic` and the P-value `r chi_test$p.value` is way smaller than 0.01 even at a 5% level of confidence. Thus, the null hypothesis is rejected here, and New Zealand's monthly flight performances is not distributed like the performances overall, it is impossible to just copy the heat map of traveling month from the general distribution and paste on Qantas' most frequently traveled region.
 
 # References
 
-* BBC, August 26, 2021, Covid: Qantas says pandemic to cost billions in lost revenue, Retrieved from: https://www.bbc.com/news/business-58338262[Access Date: 17/10/2021]
+* BBC, August 26, 2021, Covid: Qantas says pandemic to cost billions in lost revenue, Retrieved from: https://www.bbc.com/news/business-58338262 [Access Date: 17/10/2021]
 
-* OliverWyman, 2021, Airline Economic Analysis 2020-2021, Retrieved from: https://www.oliverwyman.com/our-expertise/insights/2021/mar/airline-economic-analysis-2020-2021.html[Access Date: 17/10/2021]
+* OliverWyman, 2021, Airline Economic Analysis 2020-2021, Retrieved from: https://www.oliverwyman.com/our-expertise/insights/2021/mar/airline-economic-analysis-2020-2021.html [Access Date: 17/10/2021]
