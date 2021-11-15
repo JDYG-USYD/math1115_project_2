@@ -1,0 +1,171 @@
+---
+title: "Project 2 Interrogation"
+author: "Jelly Dongyi Guo - 470033070"
+date: "University of Sydney | MATH1115 | `r format(Sys.time(), '%B %Y')`"
+output: 
+  html_document:
+    code_folding: hide  # don't change this
+    code_download: true # embed .Rmd file
+    toc: true  # table of contents
+    toc_depth: 3
+    toc_float: true # toc is always visible when scrolled
+    number_section: true # add section numbers to headings
+    theme:
+      bootswatch: "simplex" # check https://bootswatch.com/
+    base_font:
+      google: Prompt # select any Google Font
+    heading_font:
+      google: Proza Libre # select any Google Font
+---
+
+```{r setup, include=FALSE}
+# Required Packages
+library(tidyverse)
+library(base64)
+
+if (requireNamespace("thematic"))
+  thematic::thematic_rmd(font = "auto")
+
+knitr::opts_chunk$set(echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE, show_col_types = FALSE)
+
+suppressWarnings
+suppressMessages
+options(error = expression(NULL))
+options(scipen = 100)
+```
+
+# Interrogation: Chi-square Test (Goodness of Fit)
+
+> **Research Question:** Which city would be the best choice to fly in for Mr. Pargon's travel around Australia from United States? Which month would be when the airports are the least crowded? Is this "least crowdedness" having a disparity in the proportion between different destination cities?
+
+- This question is originally from peer Rohan Dixit (SID: 500457896): "When should Mr. Pargon Travel?" 
+
+## Clean the data
+
+Firstly,the data set will be cleaned to opt out any irrelevant variables, and for our investigation, entries from 2003 and 2021 are also removed since we don't have a whole-year record on them:
+
+```{r}
+# Prepare Data
+read_csv("data/data.csv", name_repair = janitor::make_clean_names) %>% 
+  filter(in_out == "I") %>% 
+  filter(port_country == "USA") %>% 
+  filter(year != 2021) %>% 
+  filter(year != 2003) %>%
+  mutate(month_num = factor(month_num)) %>% 
+  select(-month, -in_out, -international_city, -port_country, -service_country, -service_region, -airline, -route, -stops, -year, -port_region) -> data
+```
+
+## Find the least crowded month
+
+Then our goal is to figure out the least crowded city and month based on past observations of number of flights and seats provided, for the month:
+
+```{r}
+data %>% 
+  select(month_num, all_flights,max_seats) %>% 
+  plyr::ddply("month_num", plyr::numcolwise(sum)) -> table_of_months
+
+table_of_months %>% 
+  ggplot(aes(x = month_num, y = all_flights)) +
+  geom_bar(stat = "identity") + 
+  ggtitle("Number of Flights over months") +
+  xlab("Month") +
+  ylab("Flights") +
+  theme_minimal() + 
+  geom_blank()
+             
+table_of_months %>% 
+  ggplot(aes(x = month_num, y = max_seats)) +
+  geom_bar(stat = "identity") + 
+  ggtitle("Max Provided Seats over months") +
+  xlab("Month") +
+  ylab("Max Seats") +
+  theme_minimal() + 
+  geom_blank()
+```
+
+For the month it is quite obvious that November is having the least number of flights or seats capacities, with only `r table_of_months %>% filter(month_num == 11) %>% select(all_flights)` running flights and `r table_of_months %>% filter(month_num == 11) %>% select(max_seats)` provided seats.
+
+## Find the least crowded city
+
+Now we will be looking into the least crowded city that taking flights from Unite States:
+
+```{r}
+data %>%
+  select(australian_city, all_flights,max_seats) %>%
+  plyr::ddply("australian_city", plyr::numcolwise(sum)) -> table_of_city
+
+table_of_city %>% 
+  ggplot(aes(x = australian_city, y = all_flights)) +
+  geom_bar(stat = "identity") + 
+  xlab("Destination Cities") +
+  ylab("Flights") +
+  theme_minimal() + 
+  geom_blank()
+             
+table_of_city %>%  
+  ggplot(aes(x = australian_city, y = max_seats)) +
+  geom_bar(stat = "identity") + 
+  xlab("Destination Cities") +
+  ylab("Max Seats") +
+  theme_minimal() + 
+  geom_blank()
+```
+
+It turns out there are only 5 cities in Australia having flights communicating with the United States, while Adelaide and Cairns are having only 2 flights arrived in Australia from 2004 to 2020 on record. Sydney has over double of both the number of flights and seat capacities of Melbourne, where Brisbane has only half of both properties of Melbourne. 
+
+The issue is: although Adelaide and Cairns have the least crowdedness on record, they only had the 2 flights run on early of the June between 2006 and 2008, and they are never appeared after. This promises nothing for Mr. Pargon to be able to travel with this flights in future and may indicate these flights were not regulated operation for delivering normal passengers. Thus, Brisbane stands out for being the least crowded destination city in Australia for Mr. Pargon to travel in from United States.
+
+Now the question becomes: 
+
+> **Is there a city disparity in the proportion of least frequently traveled months between Sydney and others?**
+
+## Goodness of Fit
+
+This is the time when a chi-square test kicks in to help with a standard HATPC procedure. However, as mentioned before, since Adelaide and Cairns are special cases, they will be removed from this analysis.
+
+```{r}
+data %>% filter(australian_city != "Adelaide") %>% filter(australian_city != "Cairns") -> data
+```
+
+Firstly, hypothesizes are pulled up:
+
+- $H_0$ (Null Hypothesis): The crowded distribution in month of Sydney is same as other cities.
+
+- $H_1$ (Alternative Hypothesis):The crowded distribution in month of Sydney is **NOT** same as other cities.
+
+```{r}
+# Total flights
+flight_sum <- sum(table_of_months$all_flights)
+
+# Get EV
+table_of_months %>% 
+  select(all_flights) %>% 
+  mutate(all_flights = all_flights / flight_sum) %>% 
+  pull(all_flights) -> expected
+  
+# Get Sydney's number of flights distribution by months
+data %>% 
+  filter(australian_city == "Sydney") %>% 
+  select(month_num, all_flights) %>% 
+  plyr::ddply("month_num", plyr::numcolwise(sum)) %>% 
+  as_tibble() -> flights_by_months_SYD
+
+observed <- flights_by_months_SYD$all_flights
+```
+
+Assumptions are checked below based on the observed and expected possibility calculated above since the data are quite independently collected (third-parties):
+
+```{r}
+sum(observed) * expected
+```
+
+```{r}
+chisq_test <- chisq.test(observed, p = expected)
+chisq_test
+```
+
+Here the test statistics are revealed here as `r chisq_test$statistic` and the P-value `r chisq_test$p.value` is almost 1 at a 5% level of confidence. Thus, the null hypothesis is retained and the alternative hypothesis is rejected.
+
+## Conclusion
+
+This made us come to our conclusion: It seems like no matter which city Mr. Pargon decides to land to start the journey, November is always a great choice to avoid being flooded by other travelers and having a peaceful, great and enjoyable time in Australia. If Mr. Pargon is hesitating on where to land first with least crowdedness, Brisbane will be the best place to say goodbye to the winter of northern hemisphere and welcome Mr. Pargon with an Australian summer.

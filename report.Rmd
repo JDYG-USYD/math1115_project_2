@@ -28,7 +28,6 @@ if (requireNamespace("thematic"))
   thematic::thematic_rmd(font = "auto")
 
 knitr::opts_chunk$set(echo = TRUE,error = FALSE, message = FALSE, warning = FALSE, fig.show = TRUE, fig.showtext = TRUE)
-knitr::opts_current$set(fig.showtext = TRUE)
 
 suppressWarnings
 suppressMessages
